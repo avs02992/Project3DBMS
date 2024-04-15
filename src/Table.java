@@ -103,7 +103,7 @@ public class Table
      * @param _attribute the string containing attributes names
      * @param _domain    the string containing attribute domains (data types)
      * @param _key       the primary key
-     * @param _tuple     the list of tuples containing the data
+     * @param _tuples    the list of tuples containing the data
      */
     public Table(String _name, String[] _attribute, Class[] _domain, String[] _key,
             List<Comparable[]> _tuples) {
@@ -214,7 +214,10 @@ public class Table
 
         List<Comparable[]> rows = new ArrayList<>();
 
-        // T O B E I M P L E M E N T E D
+        if (index.containsKey(keyVal)) {
+            Comparable[] selectedTuple = index.get(keyVal);
+            rows.add(selectedTuple);
+        }
 
         return new Table(name + count++, attribute, domain, key, rows);
     } // select
@@ -267,18 +270,50 @@ public class Table
      *
      * #usage movie.join ("studioNo", "name", studio)
      *
-     * @param attribute1 the attributes of this table to be compared (Foreign Key)
-     * @param attribute2 the attributes of table2 to be compared (Primary Key)
+     * @param attributes1 the attributes of this table to be compared (Foreign Key)
+     * @param attributes2 the attributes of table2 to be compared (Primary Key)
      * @param table2     the rhs table in the join operation
      * @return a table with tuples satisfying the equality predicate
      */
     public Table join(String attributes1, String attributes2, Table table2) {
         out.println("RA> " + name + ".join (" + attributes1 + ", " + attributes2 + ", "
                 + table2.name + ")");
-        // T O B E I M P L E M E N T E D
+        String[] t_attrs = attributes1.split(" ");
+        t_attrs = disambiguate(t_attrs);
+        String[] u_attrs = attributes2.split(" ");
+        u_attrs = disambiguate(u_attrs);
+        List<Comparable[]> rows = new ArrayList<>();
 
-        return null;
+        for (var key : index.entrySet()) {
+            if(table2.index.containsKey(key)) {
+                var tup1 = select(key.getKey()).tuples.get(0);
+                var tup2 = table2.select(key.getKey()).tuples.get(0);
+                rows.add(ArrayUtil.concat(tup1, tup2));
+            }
+        }
 
+        return new Table(name + count++, ArrayUtil.concat(attribute, table2.attribute),
+                ArrayUtil.concat(domain, table2.domain), key, rows);
+    }
+
+    /************************************************************************************
+     * Ensures that attributes with matching information are distinguished from one
+     * another.
+     * Done through the use of appending a 2 to the end of the string value
+     *
+     * @param attrs the list of attributes that will be disamiguated
+     * @return a list containing the attributes with distinction between them
+     */
+    public String[] disambiguate(String[] attrs) {
+        String[] newList = new String[attrs.length];
+        for (int i = 0; i < attrs.length; i++) {
+            if (Arrays.asList(newList).contains(attrs[i])) {
+                newList[i] = attrs[i] + "2";
+            } else {
+                newList[i] = attrs[i];
+            }
+        }
+        return newList;
     }
 
     /************************************************************************************
@@ -292,8 +327,8 @@ public class Table
      *
      *         #usage movie.join ("studioNo", "name", studio)
      *
-     * @param attribute1 the attributes of this table to be compared (Foreign Key)
-     * @param attribute2 the attributes of table2 to be compared (Primary Key)
+     * @param attributes1 the attributes of this table to be compared (Foreign Key)
+     * @param attributes2 the attributes of table2 to be compared (Primary Key)
      * @param table2     the rhs table in the join operation
      * @return a table with tuples satisfying the equality predicate
      */
@@ -578,7 +613,15 @@ public class Table
      *         with the given domains
      */
     private boolean typeCheck(Comparable[] t) {
-        // T O B E I M P L E M E N T E D
+
+        // tuple length must match attribute length
+        if (t.length != attribute.length) {
+            return false;
+        }
+        // each element must be an instance of its corresponding domain
+        for (int i = 0; i < t.length; i++)
+            if (!domain[i].isInstance(t[i]))
+                return false;
 
         return true;
     } // typeCheck
